@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B안 · Analyst Workspace</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { padding: 24px; }
+  .frame { max-width: 1280px; margin: 0 auto; background: var(--surface); border-radius: 20px; box-shadow: var(--shadow-window); overflow: hidden; }
+  .titlebar { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--border); }
+  .tl { width: 11px; height: 11px; border-radius: 50%; }
+  .tl.r { background: #ff5f57; } .tl.y { background: #febc2e; } .tl.g { background: #28c840; }
+  .titlebar .label { flex: 1; text-align: center; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 40px; }
+
+  .shell { display: grid; grid-template-columns: 310px 1fr; min-height: 800px; }
+  .sidebar { background: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .canvas { padding: 22px 30px; overflow-y: auto; }
+
+  .group-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: var(--text-tertiary); text-transform: uppercase; margin: 2px 2px 6px; }
+  .group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--squircle); padding: 11px 13px; display: flex; flex-direction: column; gap: 7px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+  .row label { color: var(--text-secondary); }
+  .row input[type="text"] { border: 1px solid var(--border); border-radius: var(--squircle); padding: 5px 9px; font-size: 12px; background: var(--surface-sunken); text-align: right; width: 118px; outline: none; }
+  .row input[type="text"]:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-fill); }
+  #b-item-name { text-align: left; width: 150px; }
+
+  .stepper { display: flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: var(--squircle); padding: 2px; background: var(--surface-sunken); }
+  .stepper button { width: 20px; height: 20px; border: none; background: transparent; border-radius: 6px; cursor: pointer; color: var(--text); font-size: 12px; }
+  .stepper button:hover { background: var(--surface); }
+  .stepper span { width: 24px; text-align: center; font-size: 12px; font-weight: 600; }
+
+  .scroll-mini { border: 1px solid var(--border); border-radius: var(--squircle); padding: 7px 9px; background: var(--surface-sunken); font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+  .scroll-mini .sname { font-weight: 600; color: var(--text); }
+  .scroll-mini .smeta { color: var(--text-secondary); }
+
+  .add-link { border: 1px dashed var(--border-strong); border-radius: var(--squircle); padding: 6px; text-align: center; font-size: 11px; color: var(--accent); cursor: pointer; background: transparent; }
+  .add-link:hover { background: var(--accent-fill); }
+
+  .recalc-btn { width: 100%; padding: 10px; border: none; border-radius: var(--squircle); background: var(--accent); color: #fff; font-size: 12.5px; font-weight: 700; cursor: pointer; margin-top: 2px; }
+
+  /* ---- Canvas ---- */
+  .hero-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    padding: 18px 20px; border-radius: var(--squircle); background: var(--accent-fill); margin-bottom: 16px;
+  }
+  .hero-bar .verdict { font-size: 15px; font-weight: 700; color: var(--accent); }
+  .hero-bar .verdict small { display: block; font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-top: 2px; }
+  .hero-bar .verdict-diff { font-size: 20px; font-weight: 700; color: var(--positive); }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--squircle); padding: 12px 12px; }
+  .kpi .k-label { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; }
+  .kpi .k-value { font-size: 15px; font-weight: 700; }
+  .kpi .k-value.pos { color: var(--positive); }
+
+  .split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .panel { border: 1px solid var(--border); border-radius: var(--squircle); background: var(--surface); padding: 14px 16px; }
+  .panel h2 { font-size: 12px; font-weight: 700; margin: 0 0 10px; }
+
+  .route-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .route-node { padding: 6px 10px; border-radius: var(--squircle); background: var(--surface-sunken); border: 1px solid var(--border); font-size: 11px; font-weight: 600; }
+  .route-node.final { border-color: var(--accent); color: var(--accent); }
+  .route-arrow { color: var(--text-tertiary); font-size: 11px; }
+
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  table.cmp th, table.cmp td { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--divider); }
+  table.cmp th:first-child, table.cmp td:first-child { text-align: left; color: var(--text-secondary); }
+  table.cmp th { color: var(--text-tertiary); font-weight: 600; font-size: 10.5px; }
+
+  /* 탭 전환: 상세 분석 진입 */
+  .tabs-panel { border: 1px solid var(--border); border-radius: var(--squircle); background: var(--surface); overflow: hidden; }
+  .tabs-nav { display: flex; border-bottom: 1px solid var(--border); background: var(--surface-sunken); }
+  .tabs-nav button {
+    flex: 1; padding: 10px 6px; border: none; background: transparent; font-size: 11.5px; font-weight: 600;
+    color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .tabs-nav button.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+  .tab-body { padding: 16px 18px; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .ev-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 11.5px; border-bottom: 1px solid var(--divider); }
+  .ev-row.total { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 8px; font-weight: 700; border-bottom: none; }
+
+  .breakeven-bar { position: relative; height: 5px; border-radius: 3px; background: linear-gradient(to right, var(--negative-fill), var(--positive-fill)); margin: 20px 4px 6px; }
+  .breakeven-marker { position: absolute; top: -5px; width: 2px; height: 15px; background: var(--text-tertiary); }
+  .breakeven-marker.current { background: var(--accent); }
+  .breakeven-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-tertiary); padding: 0 4px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="titlebar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="label">강화 투자 계산기</span></div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="guide-meter">
+        <div class="guide-top"><span class="guide-label">입력 진행</span><span class="guide-frac">5 / 6</span></div>
+        <div class="guide-track"><span style="width:83%"></span></div>
+        <div class="guide-missing"><button>재료 아이템 이름 →</button></div>
+      </div>
+
+      <div><div class="group-label">아이템</div>
+        <div class="group">
+          <div class="row"><label>재료 아이템</label><input id="b-item-name" type="text" value="미스릴 건틀릿"></div>
+          <div class="row"><label>구매가격</label><input type="text" value="4,500만" class="mono-num"></div>
+          <div class="row"><label>목표 시세</label><input type="text" value="32,000만" class="mono-num"></div>
+        </div>
+      </div>
+
+      <div><div class="group-label">옵션 · 목표</div>
+        <div class="group">
+          <div class="opt-track"><span class="opt-name">STR</span><div class="opt-path"><span class="opt-cur">+3</span><span class="opt-arrow">→</span><span class="opt-goal">+7</span></div><div class="opt-bar"><span style="width:40%"></span></div></div>
+          <div class="opt-track"><span class="opt-name">DEX</span><div class="opt-path"><span class="opt-cur">+2</span><span class="opt-arrow">→</span><span class="opt-goal">+2</span></div><div class="opt-bar"><span style="width:100%"></span></div></div>
+          <button class="add-link">+ 옵션 추가</button>
+        </div>
+      </div>
+
+      <div><div class="group-label">업그레이드 정보</div>
+        <div class="group"><div class="row"><label>가능 횟수</label><div class="stepper"><button>−</button><span>5</span><button>+</button></div></div></div>
+      </div>
+
+      <div><div class="group-label">사용 주문서</div>
+        <div class="group">
+          <div class="scroll-mini"><span class="sname">어둠의 STR 주문서</span><span class="smeta">60% · +3 · 1,200만</span></div>
+          <div class="scroll-mini"><span class="sname">눈물의 STR 주문서</span><span class="smeta">30% · +5 · 3,400만</span></div>
+          <button class="add-link">+ 주문서 추가</button>
+        </div>
+      </div>
+
+      <div><div class="group-label">특수 주문서</div>
+        <div class="group">
+          <div class="scroll-mini"><span class="sname">백의의 주문서</span><span class="smeta">100% · 미소모 · 8,000만</span></div>
+          <button class="add-link">+ 특수 주문서 추가</button>
+        </div>
+      </div>
+
+      <button class="recalc-btn">강화 투자 계산하기</button>
+    </aside>
+
+    <main class="canvas">
+      <div class="hero-bar">
+        <div class="verdict">직접 강화 유리<small>목표 달성률 42.8% · 손익분기 29,120만</small></div>
+        <div class="verdict-diff mono-num">+3,550만</div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi"><div class="k-label">목표 달성률</div><div class="k-value mono-num">42.8%</div></div>
+        <div class="kpi"><div class="k-label">기대 총 투자금</div><div class="k-value mono-num">28,450만</div></div>
+        <div class="kpi"><div class="k-label">완제품 가격</div><div class="k-value mono-num">32,000만</div></div>
+        <div class="kpi"><div class="k-label">손익분기 가격</div><div class="k-value mono-num">29,120만</div></div>
+        <div class="kpi"><div class="k-label">예상 손익</div><div class="k-value mono-num pos">+3,550만</div></div>
+      </div>
+
+      <div class="split">
+        <div class="panel">
+          <h2>추천 강화 루트</h2>
+          <div class="route-flow">
+            <span class="route-node">+3</span><span class="route-arrow">→</span>
+            <span class="route-node">어둠 60%</span><span class="route-arrow">→</span>
+            <span class="route-node">+6</span><span class="route-arrow">→</span>
+            <span class="route-node">눈물 30%</span><span class="route-arrow">→</span>
+            <span class="route-node final">+7 달성</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>직작 vs 구매</h2>
+          <table class="cmp">
+            <thead><tr><th></th><th>직작</th><th>구매</th></tr></thead>
+            <tbody>
+              <tr><td>필요 자금</td><td>28,450만</td><td>32,000만</td></tr>
+              <tr><td>성공 확률</td><td>42.8%</td><td>100%</td></tr>
+              <tr><td>예상 손익</td><td style="color:var(--positive)">+3,550만</td><td>0</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 탭 전환: 상세 분석 진입 방식 -->
+      <div class="tabs-panel">
+        <div class="tabs-nav">
+          <button class="active" onclick="bTab(this,0)">기대값 분석</button>
+          <button onclick="bTab(this,1)">상세 확률 분석</button>
+          <button onclick="bTab(this,2)">손익분기 분석</button>
+        </div>
+        <div class="tab-body">
+          <div class="tab-pane active">
+            <div class="ev-row"><span>재료 아이템 매입가</span><span class="mono-num">4,500만</span></div>
+            <div class="ev-row"><span>주문서 기대 소모비용</span><span class="mono-num">23,950만</span></div>
+            <div class="ev-row total"><span>기대 총 투자금</span><span class="mono-num">28,450만</span></div>
+          </div>
+          <div class="tab-pane">
+            <table class="cmp">
+              <thead><tr><th>단계</th><th>성공률</th><th>기대 시도</th></tr></thead>
+              <tbody>
+                <tr><td>+3 → +6</td><td>60%</td><td>1.67회</td></tr>
+                <tr><td>+6 → +7</td><td>30%</td><td>3.33회</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tab-pane">
+            <div class="breakeven-bar"><div class="breakeven-marker" style="left:28%"></div><div class="breakeven-marker current" style="left:64%"></div></div>
+            <div class="breakeven-labels"><span>0</span><span>손익분기 29,120만</span><span>현재 시세 32,000만</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  function bTab(btn, idx) {
+    const nav = btn.parentElement, body = nav.nextElementSibling;
+    [...nav.children].forEach((b,i)=>b.classList.toggle('active', i===idx));
+    [...body.children].forEach((p,i)=>p.classList.toggle('active', i===idx));
+  }
+</script>
+</body>
+</html>

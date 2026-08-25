@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A안 · Compact Console</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { padding: 28px; }
+  .frame {
+    max-width: 1240px; margin: 0 auto;
+    background: var(--surface); border-radius: 20px;
+    box-shadow: var(--shadow-window); overflow: hidden;
+  }
+  .titlebar {
+    height: 46px; display: flex; align-items: center; gap: 8px; padding: 0 16px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .tl { width: 12px; height: 12px; border-radius: 50%; }
+  .tl.r { background: #ff5f57; } .tl.y { background: #febc2e; } .tl.g { background: #28c840; }
+  .titlebar .label { flex: 1; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-right: 42px; }
+
+  .shell { display: grid; grid-template-columns: 340px 1fr; min-height: 780px; }
+  .sidebar { background: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+  .canvas { padding: 32px 40px; overflow-y: auto; }
+
+  .group-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; color: var(--text-tertiary); text-transform: uppercase; margin: 4px 2px 8px; }
+  .group {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--squircle);
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+  .row label { color: var(--text-secondary); }
+  .row input[type="text"] {
+    border: 1px solid var(--border); border-radius: var(--squircle); padding: 6px 10px;
+    font-size: 12.5px; background: var(--surface-sunken); text-align: right; width: 130px; outline: none;
+  }
+  .row input[type="text"]:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-fill); }
+  #a-item-name { text-align: left; width: 170px; }
+
+  .stepper { display: flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: var(--squircle); padding: 2px; background: var(--surface-sunken); }
+  .stepper button { width: 22px; height: 22px; border: none; background: transparent; border-radius: 6px; cursor: pointer; color: var(--text); }
+  .stepper button:hover { background: var(--surface); }
+  .stepper span { width: 28px; text-align: center; font-size: 12.5px; font-weight: 600; }
+
+  .scroll-mini { border: 1px solid var(--border); border-radius: var(--squircle); padding: 8px 10px; background: var(--surface-sunken); font-size: 11.5px; display: flex; justify-content: space-between; align-items: center; }
+  .scroll-mini .sname { font-weight: 600; color: var(--text); }
+  .scroll-mini .smeta { color: var(--text-secondary); }
+
+  .add-link { border: 1px dashed var(--border-strong); border-radius: var(--squircle); padding: 7px; text-align: center; font-size: 11.5px; color: var(--accent); cursor: pointer; background: transparent; }
+  .add-link:hover { background: var(--accent-fill); }
+
+  .recalc-bar { position: sticky; bottom: 0; padding-top: 6px; }
+  .recalc-btn { width: 100%; padding: 11px; border: none; border-radius: var(--squircle); background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-sm); }
+
+  /* ---- Canvas: 결론 히어로 ---- */
+  .hero { text-align: center; padding: 6px 0 28px; }
+  .hero .verdict-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: var(--squircle); background: var(--positive-fill); color: var(--positive); font-size: 12px; font-weight: 700; margin-bottom: 14px; }
+  .hero h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .hero p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 30px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--squircle); padding: 16px 14px; box-shadow: var(--shadow-xs); }
+  .kpi.primary { background: var(--accent-fill-strong); border-color: transparent; }
+  .kpi .k-label { font-size: 10.5px; color: var(--text-secondary); margin-bottom: 8px; }
+  .kpi .k-value { font-size: 17px; font-weight: 700; }
+  .kpi .k-value.pos { color: var(--positive); } .kpi .k-value.neg { color: var(--negative); }
+
+  .section { margin-bottom: 14px; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .section-head h2 { font-size: 13px; font-weight: 700; margin: 0; }
+  .section-head .tag { font-size: 11px; color: var(--text-tertiary); }
+
+  .route-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 16px; background: var(--surface-sunken); border-radius: var(--squircle); }
+  .route-node { padding: 8px 12px; border-radius: var(--squircle); background: var(--surface); border: 1px solid var(--border); font-size: 12px; font-weight: 600; }
+  .route-node.final { border-color: var(--accent); color: var(--accent); }
+  .route-arrow { color: var(--text-tertiary); font-size: 12px; }
+
+  /* 점진적 공개: 아코디언 */
+  .accordion-item { border: 1px solid var(--border); border-radius: var(--squircle); margin-bottom: 8px; overflow: hidden; background: var(--surface); }
+  .accordion-head { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; cursor: pointer; user-select: none; }
+  .accordion-head h3 { font-size: 12.5px; font-weight: 700; margin: 0; }
+  .accordion-head .chev { color: var(--text-tertiary); font-size: 11px; transition: transform 0.2s; }
+  .accordion-item.open .chev { transform: rotate(90deg); }
+  .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+  .accordion-item.open .accordion-body { max-height: 600px; }
+  .accordion-inner { padding: 4px 16px 16px; }
+
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.cmp th, table.cmp td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--divider); }
+  table.cmp th:first-child, table.cmp td:first-child { text-align: left; color: var(--text-secondary); }
+  table.cmp th { color: var(--text-tertiary); font-weight: 600; font-size: 11px; }
+
+  .ev-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; border-bottom: 1px solid var(--divider); }
+  .ev-row.total { border-bottom: none; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 10px; font-weight: 700; }
+
+  .breakeven-bar { position: relative; height: 5px; border-radius: 3px; background: linear-gradient(to right, var(--negative-fill), var(--positive-fill)); margin: 22px 6px 8px; }
+  .breakeven-marker { position: absolute; top: -5px; width: 2px; height: 15px; background: var(--text-tertiary); }
+  .breakeven-marker.current { background: var(--accent); width: 2px; }
+  .breakeven-labels { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-tertiary); padding: 0 6px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="titlebar">
+    <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+    <span class="label">강화 투자 계산기</span>
+  </div>
+
+  <div class="shell">
+    <!-- ===== 사이드바: 입력 ===== -->
+    <aside class="sidebar">
+      <div class="guide-meter">
+        <div class="guide-top"><span class="guide-label">입력 진행</span><span class="guide-frac">5 / 6 완료</span></div>
+        <div class="guide-track"><span style="width:83%"></span></div>
+        <div class="guide-missing"><button>재료 아이템 이름 입력하기 →</button></div>
+      </div>
+
+      <div>
+        <div class="group-label">아이템</div>
+        <div class="group">
+          <div class="row"><label>재료 아이템</label><input id="a-item-name" type="text" value="미스릴 건틀릿"></div>
+          <div class="row"><label>구매가격</label><input type="text" value="4,500만" class="mono-num"></div>
+          <div class="row"><label>목표 시세</label><input type="text" value="32,000만" class="mono-num"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-label">옵션 · 목표</div>
+        <div class="group">
+          <div class="opt-track">
+            <span class="opt-name">STR</span>
+            <div class="opt-path"><span class="opt-cur">+3</span><span class="opt-arrow">→</span><span class="opt-goal">+7</span></div>
+            <div class="opt-bar"><span style="width:40%"></span></div>
+          </div>
+          <div class="opt-track">
+            <span class="opt-name">DEX</span>
+            <div class="opt-path"><span class="opt-cur">+2</span><span class="opt-arrow">→</span><span class="opt-goal">+2</span></div>
+            <div class="opt-bar"><span style="width:100%"></span></div>
+          </div>
+          <button class="add-link">+ 옵션 추가</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-label">업그레이드 정보</div>
+        <div class="group">
+          <div class="row"><label>가능 횟수</label>
+            <div class="stepper"><button>−</button><span>5</span><button>+</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-label">사용 주문서</div>
+        <div class="group">
+          <div class="scroll-mini"><span class="sname">어둠의 STR 주문서</span><span class="smeta">60% · +3 · 1,200만</span></div>
+          <div class="scroll-mini"><span class="sname">눈물의 STR 주문서</span><span class="smeta">30% · +5 · 3,400만</span></div>
+          <button class="add-link">+ 주문서 추가</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-label">특수 주문서</div>
+        <div class="group">
+          <div class="scroll-mini"><span class="sname">백의의 주문서</span><span class="smeta">100% · 미소모 · 8,000만</span></div>
+          <button class="add-link">+ 특수 주문서 추가</button>
+        </div>
+      </div>
+
+      <div class="recalc-bar"><button class="recalc-btn">강화 투자 계산하기</button></div>
+    </aside>
+
+    <!-- ===== 캔버스: 결과 ===== -->
+    <main class="canvas">
+      <div class="hero">
+        <div class="verdict-badge">● 직접 강화가 유리합니다</div>
+        <h1>완제품보다 약 3,550만 메소 저렴하게 확보할 수 있습니다</h1>
+        <p>목표 달성률 42.8% 기준, 손익분기 시세는 29,120만 메소입니다</p>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi"><div class="k-label">목표 달성률</div><div class="k-value mono-num">42.8%</div></div>
+        <div class="kpi primary"><div class="k-label">기대 총 투자금</div><div class="k-value mono-num">28,450만</div></div>
+        <div class="kpi"><div class="k-label">완제품 가격</div><div class="k-value mono-num">32,000만</div></div>
+        <div class="kpi"><div class="k-label">손익분기 가격</div><div class="k-value mono-num">29,120만</div></div>
+        <div class="kpi"><div class="k-label">예상 손익</div><div class="k-value mono-num pos">+3,550만</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>추천 강화 루트</h2><span class="tag">1번 루트 · 기대비용 최저</span></div>
+        <div class="route-flow">
+          <span class="route-node">+3 (현재)</span><span class="route-arrow">→</span>
+          <span class="route-node">어둠의 STR 60%</span><span class="route-arrow">→</span>
+          <span class="route-node">+6</span><span class="route-arrow">→</span>
+          <span class="route-node">눈물의 STR 30%</span><span class="route-arrow">→</span>
+          <span class="route-node final">+7 달성</span>
+        </div>
+      </div>
+
+      <!-- 점진적 공개 -->
+      <div class="section">
+        <div class="accordion-item open">
+          <div class="accordion-head" onclick="this.parentElement.classList.toggle('open')">
+            <h3>직작 vs 구매</h3><span class="chev">›</span>
+          </div>
+          <div class="accordion-body"><div class="accordion-inner">
+            <table class="cmp">
+              <thead><tr><th></th><th>직작</th><th>구매</th></tr></thead>
+              <tbody>
+                <tr><td>필요 자금</td><td>28,450만</td><td>32,000만</td></tr>
+                <tr><td>성공 확률</td><td>42.8%</td><td>100%</td></tr>
+                <tr><td>평균 투자금</td><td>28,450만</td><td>32,000만</td></tr>
+                <tr><td>예상 손익</td><td class="mono-num" style="color:var(--positive)">+3,550만</td><td>0</td></tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-head" onclick="this.parentElement.classList.toggle('open')">
+            <h3>기대값 분석</h3><span class="chev">›</span>
+          </div>
+          <div class="accordion-body"><div class="accordion-inner">
+            <div class="ev-row"><span>재료 아이템 매입가</span><span class="mono-num">4,500만</span></div>
+            <div class="ev-row"><span>주문서 기대 소모비용</span><span class="mono-num">23,950만</span></div>
+            <div class="ev-row total"><span>기대 총 투자금</span><span class="mono-num">28,450만</span></div>
+          </div></div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-head" onclick="this.parentElement.classList.toggle('open')">
+            <h3>상세 확률 분석</h3><span class="chev">›</span>
+          </div>
+          <div class="accordion-body"><div class="accordion-inner">
+            <table class="cmp">
+              <thead><tr><th>단계</th><th>성공률</th><th>기대 시도</th></tr></thead>
+              <tbody>
+                <tr><td>+3 → +6</td><td>60%</td><td>1.67회</td></tr>
+                <tr><td>+6 → +7</td><td>30%</td><td>3.33회</td></tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
+
+        <div class="accordion-item">
+          <div class="accordion-head" onclick="this.parentElement.classList.toggle('open')">
+            <h3>손익분기 분석</h3><span class="chev">›</span>
+          </div>
+          <div class="accordion-body"><div class="accordion-inner">
+            <div class="breakeven-bar">
+              <div class="breakeven-marker" style="left:28%"></div>
+              <div class="breakeven-marker current" style="left:64%"></div>
+            </div>
+            <div class="breakeven-labels"><span>0</span><span>손익분기 29,120만</span><span>현재 시세 32,000만</span></div>
+          </div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

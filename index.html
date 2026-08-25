@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강화 투자 계산기</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="frame">
+  <header class="app-header">
+    <h1>강화 투자 계산기</h1>
+    <p class="subtitle">직작과 완제품 구매, 어느 쪽이 유리한지 계산합니다</p>
+  </header>
+
+  <div class="shell" id="shell">
+  <aside id="inputView" class="sidebar">
+    <section class="card">
+      <h2>아이템</h2>
+      <div class="field-row">
+        <label>재료 아이템 이름</label>
+        <input type="text" id="itemName" placeholder="예: 노가다 목장갑">
+      </div>
+      <div class="field-row">
+        <label>재료 아이템 구매가격</label>
+        <div class="input-suffix">
+          <input type="text" inputmode="numeric" id="itemPrice" class="money-input" placeholder="0">
+          <span>만 메소</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>목표 아이템 경매장 시세</label>
+        <div class="input-suffix">
+          <input type="text" inputmode="numeric" id="salePrice" class="money-input" placeholder="0">
+          <span>만 메소</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>기본 옵션</h2>
+      <p class="hint">현재 아이템이 가진 옵션의 시작값입니다.</p>
+      <div id="baseOptionList" class="option-list"></div>
+      <div class="add-row">
+        <select id="baseOptionSelect" class="add-select">
+          <option value="">+ 옵션 추가</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>목표</h2>
+      <p class="hint">달성하려는 최소 옵션 값을 입력하세요.</p>
+      <div id="goalOptionList" class="option-list"></div>
+      <div class="add-row">
+        <select id="goalOptionSelect" class="add-select">
+          <option value="">+ 목표 옵션 추가</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>업그레이드 정보</h2>
+      <div class="field-row">
+        <label>업그레이드 가능 횟수</label>
+        <div class="stepper">
+          <button type="button" id="upgradeMinus">−</button>
+          <input type="text" inputmode="numeric" id="upgradeCount" value="5">
+          <button type="button" id="upgradePlus">+</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>사용할 주문서</h2>
+      <p class="hint">주문서를 추가하고 성공확률·효과·가격을 입력하세요.</p>
+      <div id="scrollList" class="scroll-list"></div>
+      <div class="add-row">
+        <select id="scrollPresetSelect" class="add-select">
+          <option value="">+ 주문서 추가</option>
+        </select>
+      </div>
+      <div class="add-row">
+        <button type="button" id="addCustomScrollBtn" class="pill-btn">+ 직접 입력으로 추가</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>특수 주문서</h2>
+      <p class="hint">성공 시 사용 횟수를 소모하지 않는 특수 주문서 (예: 백의의 주문서). 실패 시 파괴 확률이 있습니다.</p>
+      <div id="specialScrollList" class="scroll-list"></div>
+      <div class="add-row">
+        <button type="button" id="addSpecialScrollBtn" class="pill-btn">+ 특수 주문서 추가</button>
+      </div>
+    </section>
+
+    <button type="button" id="calcBtn" class="calc-btn">강화 투자 계산하기</button>
+    <p id="validationMsg" class="validation-msg"></p>
+  </aside>
+
+  <div id="shellResizer" class="shell-resizer"></div>
+
+  <main id="resultView" class="canvas">
+  <div id="resultEmpty" class="empty-state">
+    <p class="empty-title">아직 계산 결과가 없습니다</p>
+    <p class="empty-desc">왼쪽에 아이템 정보와 목표 옵션, 사용할 주문서를 입력한 뒤<br>"강화 투자 계산하기" 버튼을 누르면 결과가 여기에 표시됩니다.</p>
+  </div>
+
+  <div id="resultContent" class="hidden">
+    <div class="hero">
+      <span id="verdictBadge" class="verdict-badge"></span>
+      <p id="conclusion" class="conclusion"></p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-label">목표 달성률</span>
+        <span class="stat-value" id="statSuccessRate">-</span>
+      </div>
+      <div class="stat-card primary">
+        <span class="stat-label">기대 투자금</span>
+        <span class="stat-value" id="statAttemptCost">-</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">완제품 구매가</span>
+        <span class="stat-value" id="statBuyPrice">-</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">손익분기 가격</span>
+        <span class="stat-value" id="statBreakeven">-</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">예상 손익</span>
+        <span class="stat-value" id="statProfit">-</span>
+      </div>
+    </div>
+
+    <div class="split">
+      <section class="card panel">
+        <h2>추천 강화 루트</h2>
+        <div class="route-tabs" id="routeTabs">
+          <button type="button" class="route-tab active" data-tab="1">1번 루트</button>
+          <button type="button" class="route-tab" data-tab="2">2번 루트</button>
+          <button type="button" class="route-tab" data-tab="3">3번 루트</button>
+          <button type="button" class="route-tab" data-tab="4">4번 루트</button>
+        </div>
+        <div id="routeTabPanel1" class="route-tab-panel">
+          <div id="routeView"></div>
+        </div>
+        <div id="routeTabPanel2" class="route-tab-panel hidden">
+          <p class="hint">무제한 재시작, 재시작비용(장갑값×2) 포함, 경매장 시세 예산 내 성공확률입니다.</p>
+          <div id="route2View"></div>
+        </div>
+        <div id="routeTabPanel3" class="route-tab-panel hidden">
+          <p class="hint">재시작비용 없이(장갑값만) 경매장 시세 예산 내 성공확률입니다.</p>
+          <div id="route3View"></div>
+        </div>
+        <div id="routeTabPanel4" class="route-tab-panel hidden">
+          <p class="hint">확률에 상관없이 실제로 지불하는 비용이 가장 낮은 주문서 조합 순위입니다.</p>
+          <div id="route4View"></div>
+        </div>
+      </section>
+
+      <section class="card panel">
+        <h2>직작 vs 구매</h2>
+        <table class="compare-table">
+          <thead>
+            <tr><th></th><th>직작</th><th>구매</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>필요 자금</td><td id="cmpFundCraft">-</td><td id="cmpFundBuy">-</td></tr>
+            <tr><td>성공 확률</td><td id="cmpRateCraft">-</td><td id="cmpRateBuy">100%</td></tr>
+            <tr><td>평균 투자금</td><td id="cmpAvgCraft">-</td><td id="cmpAvgBuy">-</td></tr>
+            <tr><td>예상 손익</td><td id="cmpProfitCraft">-</td><td id="cmpProfitBuy">0</td></tr>
+          </tbody>
+        </table>
+        <p id="recommendation" class="recommendation"></p>
+      </section>
+    </div>
+
+    <div class="accordion-item open card" id="accEv">
+      <div class="accordion-head"><h2>기대값 분석</h2><span class="chev">›</span></div>
+      <div class="accordion-body"><div class="accordion-inner">
+        <div id="evView" class="ev-view"></div>
+      </div></div>
+    </div>
+
+    <div class="accordion-item card" id="accDetail">
+      <div class="accordion-head"><h2>상세 확률 분석</h2><span class="chev">›</span></div>
+      <div class="accordion-body"><div class="accordion-inner">
+        <div id="detailView"></div>
+      </div></div>
+    </div>
+
+    <div class="accordion-item card" id="accBreakeven">
+      <div class="accordion-head"><h2>손익분기 분석</h2><span class="chev">›</span></div>
+      <div class="accordion-body"><div class="accordion-inner">
+        <div id="breakevenView"></div>
+      </div></div>
+    </div>
+  </div>
+  </main>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+/* ============================================================
+   강화 투자 계산기 — 디자인 토큰
+   방향: macOS Sequoia / System Settings 계열 데스크톱 앱
+   squircle: border-radius 22.375% (연속 곡률의 근사치 — 진짜 superellipse는
+   아니지만 iOS/figma의 "corner smoothing" 관용치와 동일한 값)
+   ============================================================ */
+
+:root {
+  --squircle: 22.375%;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  /* surfaces — 흰색/아주 옅은 회색 중심 */
+  --bg: #eeeef0;
+  --sidebar-bg: #f6f6f7;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f2f2f4;
+
+  --border: rgba(0, 0, 0, 0.07);
+  --border-strong: rgba(0, 0, 0, 0.13);
+  --divider: rgba(0, 0, 0, 0.06);
+
+  --text: rgba(0, 0, 0, 0.85);
+  --text-secondary: rgba(0, 0, 0, 0.52);
+  --text-tertiary: rgba(0, 0, 0, 0.32);
+
+  --accent: #0668e0;
+  --accent-fill: rgba(6, 104, 224, 0.09);
+  --accent-fill-strong: rgba(6, 104, 224, 0.14);
+
+  --positive: #1c8a4b;
+  --positive-fill: rgba(28, 138, 75, 0.09);
+  --negative: #d0392b;
+  --negative-fill: rgba(208, 57, 43, 0.09);
+
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07);
+  --shadow-window: 0 30px 70px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.05);
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Pretendard", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* squircle 유틸 — 카드/버튼/입력 등 사각형 요소 공통 적용 */
+.sq { border-radius: var(--squircle); }
+.sq-sm { border-radius: max(var(--squircle), 10px); }
+
+button, input, select { font-family: var(--font); }
+
+.mono-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--squircle);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.chip.accent { background: var(--accent-fill); color: var(--accent); border-color: transparent; }
+.chip.warn { background: var(--negative-fill); color: var(--negative); border-color: transparent; }
+
+/* 옵션 트랙: "현재 → 목표" 한 줄 표기 공통 컴포넌트 */
+.opt-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--divider);
+}
+.opt-track:last-child { border-bottom: none; }
+.opt-track .opt-name { font-size: 12.5px; font-weight: 600; color: var(--text); min-width: 52px; }
+.opt-track .opt-path { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.opt-track .opt-cur { color: var(--text-secondary); }
+.opt-track .opt-arrow { color: var(--text-tertiary); font-size: 11px; }
+.opt-track .opt-goal { color: var(--accent); font-weight: 700; }
+.opt-track .opt-bar {
+  width: 64px; height: 4px; border-radius: 2px;
+  background: var(--surface-sunken); overflow: hidden;
+}
+.opt-track .opt-bar > span { display: block; height: 100%; background: var(--accent); }
+
+/* 진행 가이드 미터 */
+.guide-meter { padding: 12px 14px; border-radius: var(--squircle); background: var(--surface); border: 1px solid var(--border); }
+.guide-meter .guide-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.guide-meter .guide-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.02em; }
+.guide-meter .guide-frac { font-size: 11px; color: var(--text-tertiary); }
+.guide-meter .guide-track { height: 4px; border-radius: 2px; background: var(--surface-sunken); overflow: hidden; margin-bottom: 9px; }
+.guide-meter .guide-track > span { display: block; height: 100%; background: var(--accent); transition: width 0.25s ease; }
+.guide-meter .guide-missing { display: flex; flex-wrap: wrap; gap: 5px; }
+.guide-meter .guide-missing button {
+  border: 1px dashed var(--border-strong); background: transparent; color: var(--text-secondary);
+  font-size: 10.5px; padding: 3px 8px; border-radius: var(--squircle); cursor: pointer;
+}
+.guide-meter .guide-missing button:hover { border-color: var(--accent); color: var(--accent); }

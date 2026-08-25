@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D안 · Refined Dark (A+B 절충, 저심도 다크모드)</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
+<style>
+  /* ============================================================
+     저심도 다크모드 — Apple HIG 다크모드 elevation 원칙 적용
+     (systemBackground / secondarySystemBackground / tertiarySystemBackground
+      의 layered gray 단계를 그대로 차용. 순검정 대신 #1c1c1e 기준.)
+     squircle — border-radius는 정사각형이 아닌 요소에서 원호가 왜곡되므로
+     고정 px 반경 스케일 + corner-shape: squircle(Chromium, superellipse n=2)
+     조합. 미지원 브라우저는 border-radius만 폴백 적용됨.
+     ============================================================ */
+  :root {
+    --r-xs: 8px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px;
+
+    --bg: #1c1c1e;            /* base (systemBackground, dark) */
+    --sidebar-bg: #202022;    /* secondarySystemBackground, dark */
+    --surface: #2c2c2e;       /* tertiarySystemBackground, dark (elevated) */
+    --surface-sunken: #232325;
+    --surface-hover: #3a3a3c; /* systemGray4, dark */
+
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.15);
+    --separator: rgba(84,84,88,0.48); /* Apple opaque separator, dark */
+
+    --text: rgba(255,255,255,0.92);          /* label */
+    --text-secondary: rgba(235,235,245,0.6); /* secondaryLabel */
+    --text-tertiary: rgba(235,235,245,0.3);  /* tertiaryLabel */
+
+    --accent: #0a84ff;        /* systemBlue, dark — 보더/포커스링/진행바 등 비텍스트 용도(3:1 기준) */
+    --accent-text: #55a6ff;   /* 다크 서피스 위 텍스트용 — 4.5:1 확보한 밝은 톤 */
+    --accent-solid: #0066cc;  /* 흰 텍스트를 얹는 solid 버튼 배경 — 4.5:1 확보한 어두운 톤 */
+    --accent-fill: rgba(10,132,255,0.16);
+    --accent-fill-strong: rgba(10,132,255,0.24);
+    --positive: #30d158; /* systemGreen, dark */
+    --positive-fill: rgba(48,209,88,0.08);
+    --negative: #ff453a; /* systemRed, dark */
+    --negative-fill: rgba(255,69,58,0.08);
+
+    /* 저심도: 그림자는 최소한의 hairline + 아주 옅은 ambient만 사용 */
+    --shadow-xs: 0 1px 0 rgba(0,0,0,0.35);
+    --shadow-sm: 0 4px 14px rgba(0,0,0,0.28);
+    --shadow-window: 0 24px 64px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06);
+
+    --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+  }
+
+  /* 타이포 정보 레벨 — 마디아 스펙(§2) 매핑: 히어로=Headline 24, KPI값=Title 20,
+     섹션제목=Title 18(T3), 버튼=Title 16, 본문=Body 14, 라벨/캡션=Caption 12 */
+  :root {
+    --fs-hero: 24px;   /* Headline 24 · 행간 140% */
+    --fs-kpi: 20px;    /* Title 20 · 행간 140% */
+    --fs-title: 18px;  /* Title 18(T3) · 행간 140% */
+    --fs-btn: 16px;    /* Title 16 · 행간 140% */
+    --fs-body: 14px;   /* Body 14 · 행간 145% */
+    --fs-meta: 12px;   /* Caption 12 · 행간 145% */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: var(--fs-body); line-height: 1.45; letter-spacing: -0.025em; -webkit-font-smoothing: antialiased; }
+  body { padding: 96px; }
+  /* 국문 기본 자간 -2.5%. 순수 영문/숫자 요소는 개별적으로 0%(.num-only)로 재지정 */
+  .mono-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  .num-only { letter-spacing: 0; }
+
+  /* squircle 유틸 — 크기별 고정 반경 + corner-shape (progressive enhancement) */
+  .sq-xs { border-radius: var(--r-xs); corner-shape: squircle; }
+  .sq-sm { border-radius: var(--r-sm); corner-shape: squircle; }
+  .sq-md { border-radius: var(--r-md); corner-shape: squircle; }
+  .sq-lg { border-radius: var(--r-lg); corner-shape: squircle; }
+  .sq-xl { border-radius: var(--r-xl); corner-shape: squircle; }
+
+  .frame { max-width: 1440px; margin: 0 auto; background: var(--bg); border-radius: var(--r-xl); corner-shape: squircle; box-shadow: var(--shadow-window); overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+
+  .app-header { padding: 22px 34px; border-bottom: 1px solid var(--separator); background: var(--sidebar-bg); }
+  .app-header h1 { font-size: var(--fs-title); line-height: 1.4; font-weight: 600; margin: 0 0 4px; }
+  .app-header .subtitle { font-size: var(--fs-body); line-height: 1.45; color: var(--text-secondary); margin: 0; }
+
+  /* 입력:결과 = 5.5:4.5 */
+  .shell { display: grid; grid-template-columns: 11fr 9fr; min-height: 860px; }
+  .sidebar { background: var(--sidebar-bg); border-right: 1px solid var(--separator); padding: 28px 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+  .canvas { padding: 32px 34px; overflow-y: auto; }
+
+  .group-label { font-size: var(--fs-meta); line-height: 1.45; font-weight: 600; color: var(--text-secondary); margin: 4px 2px 9px; }
+  .group { background: var(--surface); border: 1px solid var(--border); padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: var(--fs-body); }
+  .row label { color: var(--text-secondary); }
+  .row input[type="text"] { border: 1px solid var(--border); padding: 8px 12px; font-size: var(--fs-body); background: var(--surface-sunken); color: var(--text); text-align: right; width: 42%; outline: none; }
+  .row input[type="text"]:focus { border-color: var(--accent); background: var(--surface-hover); box-shadow: 0 0 0 3px var(--accent-fill); }
+  #d-item-name { text-align: left; width: 55%; }
+
+  .stepper { display: flex; align-items: center; gap: 2px; border: 1px solid var(--border); padding: 3px; background: var(--surface-sunken); }
+  .stepper button { width: 28px; height: 28px; border: none; background: transparent; cursor: pointer; color: var(--text); font-size: var(--fs-body); }
+  .stepper button.sq-xs:hover { background: var(--surface-hover); }
+  .stepper span { width: 30px; text-align: center; font-size: var(--fs-body); font-weight: 600; letter-spacing: 0; }
+
+  .opt-track { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--separator); }
+  .opt-track:last-child { border-bottom: none; }
+  .opt-track .opt-name { font-size: var(--fs-body); font-weight: 600; min-width: 56px; letter-spacing: 0; }
+  .opt-track .opt-path { display: flex; align-items: center; gap: 6px; font-size: var(--fs-body); letter-spacing: 0; }
+  .opt-track .opt-cur { color: var(--text-secondary); }
+  .opt-track .opt-arrow { color: var(--text-tertiary); font-size: var(--fs-body); }
+  .opt-track .opt-goal { color: var(--accent-text); font-weight: 600; }
+  .opt-track .opt-bar { width: 72px; height: 4px; background: var(--surface-sunken); overflow: hidden; border-radius: 2px; }
+  .opt-track .opt-bar > span { display: block; height: 100%; background: var(--accent); }
+
+  .scroll-mini { border: 1px solid var(--border); padding: 11px 14px; background: var(--surface-sunken); font-size: var(--fs-body); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .scroll-mini .sname { font-weight: 600; color: var(--text); }
+  .scroll-mini .smeta { color: var(--text-secondary); font-size: var(--fs-meta); }
+
+  .add-link { border: 1px dashed var(--border-strong); padding: 10px; text-align: center; font-size: var(--fs-body); color: var(--accent-text); cursor: pointer; background: transparent; }
+  .add-link:hover { background: var(--accent-fill); }
+
+  .guide-meter { padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); }
+  .guide-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
+  .guide-label { font-size: var(--fs-meta); font-weight: 600; color: var(--text-secondary); }
+  .guide-frac { font-size: var(--fs-meta); color: var(--text-secondary); }
+  .guide-track { height: 5px; background: var(--surface-sunken); overflow: hidden; margin-bottom: 10px; border-radius: 2px; }
+  .guide-track > span { display: block; height: 100%; background: var(--accent); }
+  .guide-missing button { border: 1px dashed var(--border-strong); background: transparent; color: var(--text-secondary); font-size: var(--fs-meta); padding: 4px 10px; cursor: pointer; }
+  .guide-missing button:hover { border-color: var(--accent); color: var(--accent-text); }
+
+  .recalc-btn { width: 100%; padding: 14px; border: none; background: var(--accent-solid); color: #fff; font-size: var(--fs-btn); line-height: 1.4; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-xs); margin-top: 2px; }
+
+  /* ---- 캔버스: A(히어로 강조) + B(병렬 패널) 절충 — 결론이 정보 위계상 최상위(L1) ---- */
+  .hero { padding: 4px 2px 22px; }
+  .hero .verdict-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; background: var(--positive-fill); color: var(--positive); font-size: var(--fs-meta); line-height: 1.45; font-weight: 600; margin-bottom: 14px; }
+  .hero h1 { font-size: var(--fs-hero); font-weight: 600; margin: 0 0 8px; line-height: 1.4; }
+  .hero p { font-size: var(--fs-body); color: var(--text-secondary); margin: 0; }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 22px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); padding: 15px 14px; }
+  .kpi.primary { background: var(--accent-fill-strong); border-color: transparent; }
+  .kpi .k-label { font-size: var(--fs-meta); line-height: 1.45; color: var(--text-secondary); margin-bottom: 8px; }
+  .kpi .k-value { font-size: var(--fs-kpi); line-height: 1.4; font-weight: 600; }
+  .kpi .k-value.pos { color: var(--positive); }
+
+  .split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  .panel { border: 1px solid var(--border); background: var(--surface); padding: 16px 18px; }
+  .panel h2 { font-size: var(--fs-title); line-height: 1.4; font-weight: 600; margin: 0 0 12px; }
+
+  .route-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .route-node { padding: 7px 11px; background: var(--surface-sunken); border: 1px solid var(--border); font-size: var(--fs-body); font-weight: 600; letter-spacing: 0; }
+  .route-node.final { border-color: var(--accent); color: var(--accent-text); }
+  .route-arrow { color: var(--text-tertiary); font-size: var(--fs-body); }
+
+  table.cmp { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
+  table.cmp th, table.cmp td { padding: 7px 5px; text-align: center; border-bottom: 1px solid var(--separator); }
+  table.cmp th:first-child, table.cmp td:first-child { text-align: left; color: var(--text-secondary); }
+  table.cmp th { color: var(--text-secondary); font-weight: 600; font-size: var(--fs-meta); }
+
+  /* 상세 분석: A의 아코디언(점진 공개) 유지 */
+  .accordion-item { border: 1px solid var(--border); margin-bottom: 10px; overflow: hidden; background: var(--surface); }
+  .accordion-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; cursor: pointer; user-select: none; }
+  .accordion-head h3 { font-size: var(--fs-title); line-height: 1.4; font-weight: 600; margin: 0; }
+  .accordion-head .chev { color: var(--text-tertiary); font-size: var(--fs-body); transition: transform 0.2s; }
+  .accordion-item.open .chev { transform: rotate(90deg); }
+  .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+  .accordion-item.open .accordion-body { max-height: 500px; }
+  .accordion-inner { padding: 2px 18px 18px; }
+
+  .ev-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: var(--fs-body); border-bottom: 1px solid var(--separator); }
+  .ev-row.total { border-bottom: none; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 10px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header class="app-header">
+    <h1>메이플 플래닛 직작 효율 계산기</h1>
+    <p class="subtitle">직작과 완제품 구매, 어느 쪽이 유리한지 계산합니다</p>
+  </header>
+
+  <div class="shell">
+    <!-- ===== 사이드바: 입력 (55%) ===== -->
+    <aside class="sidebar">
+      <div class="guide-meter sq-md">
+        <div class="guide-top"><span class="guide-label">입력 진행</span><span class="guide-frac">5 / 6 완료</span></div>
+        <div class="guide-track"><span style="width:83%"></span></div>
+        <div class="guide-missing"><button class="sq-xs">원본 아이템 이름 입력하기 →</button></div>
+      </div>
+
+      <div>
+        <div class="group-label">아이템</div>
+        <div class="group sq-md">
+          <div class="row"><label>원본 아이템</label><input id="d-item-name" class="sq-sm" type="text" value="노가다 목장갑"></div>
+          <div class="row"><label>깡통 시세</label><input type="text" class="sq-sm mono-num" value="20만"></div>
+          <div class="row"><label>목표 아이템 경매장 가격</label><input type="text" class="sq-sm mono-num" value="450만"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-label">옵션 · 목표</div>
+        <div class="group sq-md">
+          <div class="opt-track">
+            <span class="opt-name">STR</span>
+            <div class="opt-path"><span class="opt-cur">+3</span><span class="opt-arrow">→</span><span class="opt-goal">+7</span></div>
+            <div class="opt-bar"><span style="width:40%"></span></div>
+          </div>
+          <div class="opt-track">
+            <span class="opt-name">DEX</span>
+            <div class="opt-path"><span class="opt-cur">+2</span><span class="opt-arrow">→</span><span class="opt-goal">+2</span></div>
+            <div class="opt-bar"><span style="width:100%"></span></div>
+          </div>
+          <button class="add-link sq-sm">+ 옵션 추가</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-label">업그레이드 정보</div>
+        <div class="group sq-md">
+          <div class="row"><label>가능 횟수</label>
+            <div class="stepper sq-sm"><button class="sq-xs">−</button><span>5</span><button class="sq-xs">+</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-label">사용 가능한 주문서</div>
+        <div class="group sq-md">
+          <div class="scroll-mini sq-sm"><span class="sname">장갑 공격력 10% 주문서</span><span class="smeta">10%, 물리 공격력 +3, 43만 메소</span></div>
+          <div class="scroll-mini sq-sm"><span class="sname">장갑 공격력 60% 주문서</span><span class="smeta">60%, 물리 공격력 +2, 210만 메소</span></div>
+          <div class="scroll-mini sq-sm"><span class="sname">장갑 공격력 100% 주문서</span><span class="smeta">100%, 물리 공격력 +1, 130만 메소</span></div>
+          <button class="add-link sq-sm">+ 주문서 추가</button>
+        </div>
+      </div>
+
+      <button class="recalc-btn sq-md">직작 효율 계산</button>
+    </aside>
+
+    <!-- ===== 캔버스: 결과 (45%) ===== -->
+    <main class="canvas">
+      <div class="hero">
+        <div class="verdict-badge sq-xs">● 직작 추천</div>
+        <h1>완제품 구매보다 약 220만 메소 절약 가능</h1>
+        <p>목표 달성률 42.8% 기준</p>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi sq-sm"><div class="k-label">달성률</div><div class="k-value mono-num num-only">42.8%</div></div>
+        <div class="kpi primary sq-sm"><div class="k-label">기대 투자금</div><div class="k-value mono-num">28,450만</div></div>
+        <div class="kpi sq-sm"><div class="k-label">완제품가</div><div class="k-value mono-num">32,000만</div></div>
+        <div class="kpi sq-sm"><div class="k-label">손익분기</div><div class="k-value mono-num">29,120만</div></div>
+        <div class="kpi sq-sm"><div class="k-label">예상손익</div><div class="k-value mono-num pos">+3,550만</div></div>
+      </div>
+
+      <div class="split">
+        <div class="panel sq-md">
+          <h2>추천 강화 루트</h2>
+          <div class="route-flow">
+            <span class="route-node sq-xs">+3</span><span class="route-arrow">→</span>
+            <span class="route-node sq-xs">60%</span><span class="route-arrow">→</span>
+            <span class="route-node sq-xs">+6</span><span class="route-arrow">→</span>
+            <span class="route-node sq-xs">30%</span><span class="route-arrow">→</span>
+            <span class="route-node final sq-xs">+7 달성</span>
+          </div>
+        </div>
+        <div class="panel sq-md">
+          <h2>직작 vs 구매</h2>
+          <table class="cmp">
+            <thead><tr><th></th><th>직작</th><th>구매</th></tr></thead>
+            <tbody>
+              <tr><td>필요 자금</td><td>28,450만</td><td>32,000만</td></tr>
+              <tr><td>성공 확률</td><td class="num-only">42.8%</td><td class="num-only">100%</td></tr>
+              <tr><td>예상 손익</td><td style="color:var(--positive)">+3,550만</td><td class="num-only">0</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 점진적 공개 (A안 방식 유지) -->
+      <div class="accordion-item open sq-md">
+        <div class="accordion-head" onclick="this.parentElement.classList.toggle('open')">
+          <h3>기대값 분석</h3><span class="chev">›</span>
+        </div>
+        <div class="accordion-body"><div class="accordion-inner">
+          <div class="ev-row"><span>재료 아이템 매입가</span><span class="mono-num">4,500만</span></div>
+          <div class="ev-row"><span>주문서 기대 소모비용</span><span class="mono-num">23,950만</span></div>
+          <div class="ev-row total"><span>기대 총 투자금</span><span class="mono-num">28,450만</span></div>
+        </div></div>
+      </div>
+
+      <div class="accordion-item sq-md">
+        <div class="accordion-head" onclick="this.parentElement.classList.toggle('open')">
+          <h3>상세 확률 분석</h3><span class="chev">›</span>
+        </div>
+        <div class="accordion-body"><div class="accordion-inner">
+          <table class="cmp">
+            <thead><tr><th>단계</th><th>성공률</th><th>기대 시도</th></tr></thead>
+            <tbody>
+              <tr><td class="num-only">+3 → +6</td><td class="num-only">60%</td><td>1.67회</td></tr>
+              <tr><td class="num-only">+6 → +7</td><td class="num-only">30%</td><td>3.33회</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
