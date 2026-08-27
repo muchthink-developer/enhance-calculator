@@ -274,8 +274,8 @@ input[type="text"]:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   border: none;
   border-radius: var(--r-xs);
@@ -412,6 +412,13 @@ input[type="text"]:focus {
 }
 
 .calc-btn:hover { background: #0072e0; }
+
+.calc-btn:disabled {
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  box-shadow: none;
+}
 
 .validation-msg {
   color: var(--negative);
